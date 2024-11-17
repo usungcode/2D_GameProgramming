@@ -31,14 +31,14 @@ frame = 0  # frame은 한 번만 초기화하고 계속 사용
 key_state = {SDLK_a: False, SDLK_d: False}  # 키 상태를 추적하기 위한 딕셔너리
 draw_reverse = False
 
-x = 200
+p1_loaction = 200
 while IngameScene:
     clear_canvas()  # 이전 화면을 지움
     ingame_bg.draw_now(center_x, center_y)  # 배경 그리기
     if (draw_reverse == True) : 
-        player1_rw.clip_draw(frame * 64, 0, 64, 63, x, 110, 128, 126)  # 플레이어 그리기
+        player1_rw.clip_draw(frame * 64, 0, 64, 63, p1_loaction, 110, 128, 126)  # 플레이어 그리기
     else : 
-        player1_w.clip_draw(frame * 64, 0, 64, 63, x, 110, 128, 126)  # 플레이어 그리기
+        player1_w.clip_draw(frame * 64, 0, 64, 63, p1_loaction, 110, 128, 126)  # 플레이어 그리기
     update_canvas()  # 화면에 반영
 
 
@@ -65,10 +65,10 @@ while IngameScene:
 
     # 키 상태에 따라 프레임 변경
     if key_state[SDLK_a]:
-        x -= 10
+        p1_loaction -= 10
         frame = (frame - 1) % 5  # a 키를 계속 눌렀을 때 frame을 감소시킴
     if key_state[SDLK_d]:
-        x += 10
+        p1_loaction += 10
         frame = (frame + 1) % 5  # d 키를 계속 눌렀을 때 frame을 증가시킴
 
     delay(0.05)  # 딜레이로 애니메이션 속도 조절
