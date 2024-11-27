@@ -8,6 +8,7 @@ class Player:
         self.slide = 0
         self.frame = 0
         self.draw_reverse = False
+        self.spike = True
         self.key_state = {SDLK_LEFT: False, SDLK_RIGHT: False, SDLK_UP: False, SDLK_DOWN: False}
         
         # 리소스 로드
@@ -28,7 +29,7 @@ class Player:
         # 슬라이드 처리
         elif self.slide != 0:
             slide_distance = 10  # 슬라이드 이동 거리
-            max_slide_distance = 60  # 최대 슬라이드 거리
+            max_slide_distance = 40  # 최대 슬라이드 거리
             if abs(self.slide) <= max_slide_distance and (CheckCollision.Check_Wall_LCollision(self.x + self.slide) == False and CheckCollision.Check_Wall_RCollision(self.x + self.slide) == False):
                 self.x += self.slide
                 self.slide += slide_distance if self.slide > 0 else -slide_distance
@@ -39,11 +40,11 @@ class Player:
 
         # 키 상태에 따른 이동
         elif self.key_state[SDLK_LEFT] and CheckCollision.Check_Wall_LCollision(self.x + self.slide) == False:
-            self.x -= 10
+            self.x -= 5
             self.draw_reverse = True
             self.frame = (self.frame + 1) % 5
         elif self.key_state[SDLK_RIGHT] and CheckCollision.Check_Wall_RCollision(self.x + self.slide) == False:
-            self.x += 10
+            self.x += 5
             self.draw_reverse = False
             self.frame = (self.frame + 1) % 5
         else:
@@ -54,7 +55,7 @@ class Player:
         if self.jump != 0:
             self.img_j.clip_draw((self.frame // 2) * 64, 0, 64, 63, self.x, self.y + 110 + self.jump, 128, 126)
         elif self.slide > 0:
-            self.img_s.clip_draw((self.frame // 2) * 64, 0, 64, 63, self.x + self.slide, self.y + 110, 128, 126)
+            self.img_s.clip_draw((self.frame // 4) * 64, 0, 64, 63, self.x + self.slide, self.y + 110, 128, 126)
         elif self.slide < 0:
             self.img_rs.clip_draw((self.frame // 2) * 64, 0, 64, 63, self.x + self.slide, self.y + 110, 128, 126)
         elif self.draw_reverse:
@@ -74,6 +75,58 @@ class Player:
             self.img_w.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         else:
             self.img_rw.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
+            
+class Ball:
+    def __init__(self, x, y, resources, player1, player2):
+        self.x = x
+        self.y = y
+        self.x_speed = 0
+        self.y_speed = 10
+        self.gravity = 0.1
+        self.ball_img = resources
+        self.player1 = player1
+        self.player2 = player2
+        self.start =  False
+
+    def update(self):
+        collision_p1 = CheckCollision.Check_BallChar_Collision(self.player1.x, self.player1.y, self.x, self.y)
+        collision_p2 = CheckCollision.Check_BallChar_Collision(self.player2.x, self.player2.y, self.x, self.y)
+        collision_wall = CheckCollision.Check_BallWall_Collision(self.x, self.y)
+
+        if not self.start:
+            self.y -= 5  # 공 초기 상태: 떨어지는 애니메이션
+            if self.y <= self.player1.y + 110:  # 캐릭터와 충돌하면 게임 시작
+                self.start = True
+        else :
+        # 공의 기본 이동
+            self.x += self.x_speed
+            self.y += self.y_speed
+            self.y_speed += self.gravity  # 중력 적용
+
+        # 캐릭터와 충돌
+        if collision_p1:
+            self.x_speed = 10
+            self.y_speed = 10
+            self.start = True
+
+        elif collision_p2:
+            self.x_speed = -10
+            self.y_speed = 10
+            self.start = True
+            
+        # 벽과 충돌
+        if collision_wall == 1:  # 왼쪽 벽
+            self.x_speed = abs(self.x_speed)  # 오른쪽으로 반사
+        elif collision_wall == 2:  # 오른쪽 벽
+            self.x_speed = -abs(self.x_speed)  # 왼쪽으로 반사
+        elif collision_wall == 5:  # 천장 충돌
+            self.y_speed = -abs(self.y_speed)  # 아래로 반사
+        elif collision_wall == 6:
+            self.x -= self.x_speed
+            self.x_speed = -self.x_speed
+
+    def draw_ball(self):
+        self.ball_img.clip_draw(0, 0, 100, 100, self.x, self. y, 100, 100)
 
 class GameScene:
     def __init__(self):
@@ -88,6 +141,7 @@ class GameScene:
         # 리소스 로드
         self.start_bg = load_image('my_project\\codes\\res\\StartImage.png')
         self.ingame_bg = load_image('my_project\\codes\\res\\IngameImage.bmp')
+        
 
         # 플레이어 생성
         self.player1 = Player(200, 0, [
@@ -104,6 +158,29 @@ class GameScene:
             load_image('my_project\\codes\\res\\p2_slide.png'),
             load_image('my_project\\codes\\res\\p2_reverse_slide.png')
         ])
+
+        self.score_p1 = Rule(0, [
+            load_image('my_project\\codes\\res\\0.png'),
+            load_image('my_project\\codes\\res\\1.png'),
+            load_image('my_project\\codes\\res\\2.png'),
+            load_image('my_project\\codes\\res\\3.png'),
+            load_image('my_project\\codes\\res\\4.png'),
+            load_image('my_project\\codes\\res\\5.png'),
+            load_image('my_project\\codes\\res\\winner.png')
+        ])
+
+        self.score_p2 = Rule(0, [
+            load_image('my_project\\codes\\res\\0.png'),
+            load_image('my_project\\codes\\res\\1.png'),
+            load_image('my_project\\codes\\res\\2.png'),
+            load_image('my_project\\codes\\res\\3.png'),
+            load_image('my_project\\codes\\res\\4.png'),
+            load_image('my_project\\codes\\res\\5.png'),
+            load_image('my_project\\codes\\res\\winner.png')
+        ])
+
+        # 공 생성
+        self.ball = Ball(300, 600, load_image('my_project\\codes\\res\\ball.png'), self.player1, self.player2)
 
     def start_scene(self):
         start_scene = True
@@ -125,16 +202,47 @@ class GameScene:
         # 플레이어 업데이트 및 그리기
             self.player1.update()
             self.player2.update()
+            self.ball.update()
             self.player1.draw_p1()
             self.player2.draw_p2()
+            self.ball.draw_ball()
+            
+            collision_wall = CheckCollision.Check_BallWall_Collision(self.ball.x, self.ball.y)
+            if collision_wall == 3:  # 바닥 충돌
+                self.score_p2.score += 1
+                self.ball.x = 300
+                self.ball.y = 600
+                self.ball.start = False
+                self.player1.spike = True
+                self.player2.spike = True
+            elif collision_wall == 4:  # 바닥 충돌
+                self.score_p1.score += 1
+                self.ball.x = 800
+                self.ball.y = 600
+                self.ball.start = False
+                self.player1.spike = True
+                self.player2.spike = True
 
+            if self.score_p1.score == 5 or self.score_p2.score == 5:
+                self.ball.x = 550
+                self.ball.y = 600
+                self.ball.start = False
+                self.ball.x_speed = 0
+                self.ball.y_speed = 0
+
+            
+            self.score_p1.draw_score_p1()
+            self.score_p2.draw_score_p2()
+            
             update_canvas()
             for event in get_events():
                 if event.type == SDL_QUIT:
                     ingame_scene = False
                 elif event.type == SDL_KEYDOWN:
+                    if event.key == SDLK_ESCAPE:
+                        ingame_scene = False
                 # 플레이어1 이벤트
-                    if event.key == SDLK_a:
+                    elif event.key == SDLK_a:
                         self.player1.key_state[SDLK_LEFT] = True
                     elif event.key == SDLK_d:
                         self.player1.key_state[SDLK_RIGHT] = True
@@ -142,6 +250,10 @@ class GameScene:
                         self.player1.jump = 25
                     elif event.key == SDLK_s and self.player1.slide == 0:  # 슬라이드 중복 방지
                         self.player1.slide = -20 if self.player1.draw_reverse else 20
+                    elif event.key == SDLK_r and self.player1.spike == True:
+                        self.ball.x_speed *= 5
+                        self.ball.y_speed *= 5
+                        self.player1.spike = False
 
                 # 플레이어2 이벤트
                     if event.key == SDLK_j:
@@ -152,6 +264,10 @@ class GameScene:
                         self.player2.jump = 25
                     elif event.key == SDLK_k and self.player2.slide == 0:  # 슬라이드 중복 방지
                         self.player2.slide = -20 if self.player2.draw_reverse else 20
+                    elif event.key == SDLK_RSHIFT and self.player2.spike == True:
+                        self.ball.x_speed *= 5
+                        self.ball.y_speed *= 5
+                        self.player2.spike = False
 
                 elif event.type == SDL_KEYUP:
                 # 플레이어1 키 해제
@@ -166,6 +282,7 @@ class GameScene:
                     elif event.key == SDLK_l:
                         self.player2.key_state[SDLK_RIGHT] = False
             delay(0.05)
+        
 
     def run(self):
         self.start_scene()
@@ -188,6 +305,65 @@ class CheckCollision:
             return True
         else:
             return False
+
+    def Check_BallChar_Collision(px, py, bx, by):
+        if (px - 64 < bx + 50 and px + 64 > bx - 50 and py + 110 < by + 100 and py + 220 > by):
+            return True
+        else:
+            return False
+
+    def Check_BallWall_Collision(bx, by):
+        if (bx - 50 <= 0):
+            return 1
+        elif (bx + 50 >= 1100):
+            return 2
+        elif (by <= 110 and bx < 550):
+            return 3
+        elif (by <= 110 and bx > 550):
+            return 4
+        elif (by >= 600):
+            return 5
+        elif by <= 335 and (bx + 50 >= 550) and bx - 50 <= 550: 
+            return 6
+        else:
+            return 7
+
+class Rule:
+    def __init__(self, score, resources):
+        self.score = 0        
+        self.zero, self.one, self.two, self.three, self.four, self.five, self.winner = resources
+
+    def draw_score_p1(self):
+        if(self.score == 0):
+            self.zero.clip_draw(0,0,100,100,150,600,100,100)
+        elif(self.score == 1):
+            self.one.clip_draw(0,0,100,100,150,600,100,100)
+        elif(self.score == 2):
+            self.two.clip_draw(0,0,100,100,150,600,100,100)       
+        elif(self.score == 3):
+            self.three.clip_draw(0,0,100,100,150,600,100,100)          
+        elif(self.score == 4):
+            self.four.clip_draw(0,0,100,100,150,600,100,100)        
+        elif(self.score == 5):
+            self.five.clip_draw(0,0,100,100,150,600,100,100)
+            self.winner.clip_draw(0, 0, 300 , 100 , 250, 300, 300, 100)
+    
+    def draw_score_p2(self):
+        if(self.score == 0):
+            self.zero.clip_draw(0,0,100,100,950,600,100,100)
+        elif(self.score == 1):
+            self.one.clip_draw(0,0,100,100,950,600,100,100)
+        elif(self.score == 2):
+            self.two.clip_draw(0,0,100,100,950,600,100,100)       
+        elif(self.score == 3):
+            self.three.clip_draw(0,0,100,100,950,600,100,100)          
+        elif(self.score == 4):
+            self.four.clip_draw(0,0,100,100,950,600,100,100)        
+        elif(self.score == 5):
+            self.five.clip_draw(0,0,100,100,950,600,100,100)
+            self.winner.clip_draw(0, 0, 300 , 100 , 850, 300, 300, 100)
+
+        
 
 if __name__ == '__main__':
     game = GameScene()
