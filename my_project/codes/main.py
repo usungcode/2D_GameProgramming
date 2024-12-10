@@ -9,10 +9,14 @@ class Player:
         self.frame = 0
         self.draw_reverse = False
         self.spike = True
+        self.skill = True
+        self.net_stop = 0
+        self.spike_cooltime = 0
+        self.skill_cooltime = 0
         self.key_state = {SDLK_LEFT: False, SDLK_RIGHT: False, SDLK_UP: False, SDLK_DOWN: False}
         
         # 리소스 로드
-        self.img_w, self.img_rw, self.img_j, self.img_s, self.img_rs = resources
+        self.img_w, self.img_rw, self.img_j, self.img_s, self.img_rs, self.img_net = resources
 
     def update(self):
         # 점프 처리
@@ -62,6 +66,8 @@ class Player:
             self.img_rw.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         else:
             self.img_w.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
+        if self.net_stop > 0:
+            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 50, 100)
 
     def draw_p2(self):
         # 애니메이션 그리기
@@ -75,6 +81,9 @@ class Player:
             self.img_w.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         else:
             self.img_rw.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
+        if self.net_stop > 0:
+            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 50, 100)
+
             
 class Ball:
     def __init__(self, x, y, resources, player1, player2):
@@ -141,7 +150,6 @@ class GameScene:
         # 리소스 로드
         self.start_bg = load_image('my_project\\codes\\res\\StartImage.png')
         self.ingame_bg = load_image('my_project\\codes\\res\\IngameImage.bmp')
-        
 
         # 플레이어 생성
         self.player1 = Player(200, 0, [
@@ -149,14 +157,18 @@ class GameScene:
             load_image('my_project\\codes\\res\\p1_reverse_walking.png'),
             load_image('my_project\\codes\\res\\p1_jump.png'),
             load_image('my_project\\codes\\res\\p1_slide.png'),
-            load_image('my_project\\codes\\res\\p1_reverse_slide.png')
+            load_image('my_project\\codes\\res\\p1_reverse_slide.png'),
+            load_image('my_project\\codes\\res\\net.png')
+
         ])
         self.player2 = Player(800, 0, [
             load_image('my_project\\codes\\res\\p2_walking.png'),
             load_image('my_project\\codes\\res\\p2_reverse_walkin.png'),
             load_image('my_project\\codes\\res\\p2_jump.png'),
             load_image('my_project\\codes\\res\\p2_slide.png'),
-            load_image('my_project\\codes\\res\\p2_reverse_slide.png')
+            load_image('my_project\\codes\\res\\p2_reverse_slide.png'),
+            load_image('my_project\\codes\\res\\net.png')
+
         ])
 
         self.score_p1 = Rule(0, [
@@ -242,32 +254,38 @@ class GameScene:
                     if event.key == SDLK_ESCAPE:
                         ingame_scene = False
                 # 플레이어1 이벤트
-                    elif event.key == SDLK_a:
+                    elif event.key == SDLK_a and self.player1.net_stop == 0:
                         self.player1.key_state[SDLK_LEFT] = True
-                    elif event.key == SDLK_d:
+                    elif event.key == SDLK_d and self.player1.net_stop == 0:
                         self.player1.key_state[SDLK_RIGHT] = True
                     elif event.key == SDLK_w and self.player1.jump == 0:  # 점프 중복 방지
                         self.player1.jump = 25
-                    elif event.key == SDLK_s and self.player1.slide == 0:  # 슬라이드 중복 방지
+                    elif event.key == SDLK_s and self.player1.slide == 0 and self.player1.net_stop == 0:  # 슬라이드 중복 방지
                         self.player1.slide = -20 if self.player1.draw_reverse else 20
                     elif event.key == SDLK_r and self.player1.spike == True:
                         self.ball.x_speed *= 5
                         self.ball.y_speed *= 5
                         self.player1.spike = False
+                    elif event.key == SDLK_e and self.player1.skill == True:
+                        self.player2.net_stop = 60
+                        self.player1.skill = False
 
                 # 플레이어2 이벤트
-                    if event.key == SDLK_j:
+                    if event.key == SDLK_j and self.player2.net_stop == 0:
                         self.player2.key_state[SDLK_LEFT] = True
-                    elif event.key == SDLK_l :
+                    elif event.key == SDLK_l and self.player2.net_stop == 0:
                         self.player2.key_state[SDLK_RIGHT] = True
                     elif event.key == SDLK_i and self.player2.jump == 0:  # 점프 중복 방지
                         self.player2.jump = 25
-                    elif event.key == SDLK_k and self.player2.slide == 0:  # 슬라이드 중복 방지
+                    elif event.key == SDLK_k and self.player2.slide == 0 and self.player2.net_stop == 0:  # 슬라이드 중복 방지
                         self.player2.slide = -20 if self.player2.draw_reverse else 20
-                    elif event.key == SDLK_RSHIFT and self.player2.spike == True:
+                    elif event.key == SDLK_p and self.player2.spike == True:
                         self.ball.x_speed *= 5
                         self.ball.y_speed *= 5
                         self.player2.spike = False
+                    elif event.key == SDLK_o and self.player2.skill == True:
+                        self.player1.net_stop = 60
+                        self.player2.skill = False
 
                 elif event.type == SDL_KEYUP:
                 # 플레이어1 키 해제
@@ -281,6 +299,36 @@ class GameScene:
                         self.player2.key_state[SDLK_LEFT] = False
                     elif event.key == SDLK_l:
                         self.player2.key_state[SDLK_RIGHT] = False
+
+            if self.player1.spike == False:
+                self.player1.spike_cooltime += 1
+                if self.player1.spike_cooltime >= 150:
+                    self.player1.spike = True
+                    self.player1.spike_cooltime = 0
+
+            if self.player1.skill == False:
+                self.player1.skill_cooltime += 1
+                if self.player1.skill_cooltime >= 200:
+                    self.player1.skill = True
+                    self.player1.skill_cooltime = 0
+
+            if self.player1.net_stop > 0:
+                self.player1.net_stop -= 1
+
+            if self.player2.spike == False:
+                self.player2.spike_cooltime += 1
+                if self.player2.spike_cooltime >= 150:
+                    self.player2.spike = True
+                    self.player2.spike_cooltime = 0
+
+            if self.player2.skill == False:
+                self.player2.skill_cooltime += 1
+                if self.player2.skill_cooltime >= 200:
+                    self.player2.skill = True
+                    self.player2.skill_cooltime = 0
+            
+            if self.player2.net_stop > 0:
+                self.player2.net_stop -= 1
             delay(0.05)
         
 
