@@ -67,7 +67,7 @@ class Player:
         else:
             self.img_w.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         if self.net_stop > 0:
-            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 50, 100)
+            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 120, 100)
 
     def draw_p2(self):
         # 애니메이션 그리기
@@ -82,7 +82,7 @@ class Player:
         else:
             self.img_rw.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         if self.net_stop > 0:
-            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 50, 100)
+            self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 120, 100)
 
             
 class Ball:
@@ -90,12 +90,15 @@ class Ball:
         self.x = x
         self.y = y
         self.x_speed = 0
-        self.y_speed = 10
+        self.y_speed = 20
         self.gravity = 0.1
         self.ball_img = resources
         self.player1 = player1
         self.player2 = player2
         self.start =  False
+        self.ballSound = load_wav('my_project\\codes\\res\\ballSound.wav')
+        self.ballSound.set_volume(20)
+        self.CheckSound = False
 
     def update(self):
         collision_p1 = CheckCollision.Check_BallChar_Collision(self.player1.x, self.player1.y, self.x, self.y)
@@ -103,7 +106,7 @@ class Ball:
         collision_wall = CheckCollision.Check_BallWall_Collision(self.x, self.y)
 
         if not self.start:
-            self.y -= 5  # 공 초기 상태: 떨어지는 애니메이션
+            self.y -= 15  # 공 초기 상태: 떨어지는 애니메이션
             if self.y <= self.player1.y + 110:  # 캐릭터와 충돌하면 게임 시작
                 self.start = True
         else :
@@ -114,13 +117,19 @@ class Ball:
 
         # 캐릭터와 충돌
         if collision_p1:
-            self.x_speed = 10
-            self.y_speed = 10
+            self.x_speed = 20
+            self.y_speed = 20
+            if self.CheckSound == False:
+                self.ballSound.play(1)
+                self.CheckSound = True
             self.start = True
 
         elif collision_p2:
-            self.x_speed = -10
-            self.y_speed = 10
+            self.x_speed = -20
+            self.y_speed = 20
+            if self.CheckSound == False:
+                self.ballSound.play(1)
+                self.CheckSound = True
             self.start = True
             
         # 벽과 충돌
@@ -130,6 +139,7 @@ class Ball:
             self.x_speed = -abs(self.x_speed)  # 왼쪽으로 반사
         elif collision_wall == 5:  # 천장 충돌
             self.y_speed = -abs(self.y_speed)  # 아래로 반사
+            self.CheckSound = False
         elif collision_wall == 6:
             self.x -= self.x_speed
             self.x_speed = -self.x_speed
@@ -150,6 +160,7 @@ class GameScene:
         # 리소스 로드
         self.start_bg = load_image('my_project\\codes\\res\\StartImage.png')
         self.ingame_bg = load_image('my_project\\codes\\res\\IngameImage.bmp')
+        self.BaseBGM = load_wav('my_project\\codes\\res\\BaseBGM.wav')
 
         # 플레이어 생성
         self.player1 = Player(200, 0, [
@@ -196,6 +207,8 @@ class GameScene:
 
     def start_scene(self):
         start_scene = True
+        self.BaseBGM.repeat_play()
+        self.BaseBGM.set_volume(60)
         while start_scene:
             self.start_bg.draw_now(self.center_x, self.center_y)
             update_canvas()
@@ -209,7 +222,7 @@ class GameScene:
         ingame_scene = True
         while ingame_scene:
             clear_canvas()
-            self.ingame_bg.draw_now(self.center_x, self.center_y)
+            self.ingame_bg.draw(self.center_x, self.center_y)
 
         # 플레이어 업데이트 및 그리기
             self.player1.update()
@@ -263,8 +276,8 @@ class GameScene:
                     elif event.key == SDLK_s and self.player1.slide == 0 and self.player1.net_stop == 0:  # 슬라이드 중복 방지
                         self.player1.slide = -20 if self.player1.draw_reverse else 20
                     elif event.key == SDLK_r and self.player1.spike == True:
-                        self.ball.x_speed *= 5
-                        self.ball.y_speed *= 5
+                        self.ball.x_speed *= 2
+                        self.ball.y_speed *= 2
                         self.player1.spike = False
                     elif event.key == SDLK_e and self.player1.skill == True:
                         self.player2.net_stop = 60
@@ -280,8 +293,8 @@ class GameScene:
                     elif event.key == SDLK_k and self.player2.slide == 0 and self.player2.net_stop == 0:  # 슬라이드 중복 방지
                         self.player2.slide = -20 if self.player2.draw_reverse else 20
                     elif event.key == SDLK_p and self.player2.spike == True:
-                        self.ball.x_speed *= 5
-                        self.ball.y_speed *= 5
+                        self.ball.x_speed *= 2
+                        self.ball.y_speed *= 2
                         self.player2.spike = False
                     elif event.key == SDLK_o and self.player2.skill == True:
                         self.player1.net_stop = 60
