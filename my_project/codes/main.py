@@ -83,8 +83,7 @@ class Player:
             self.img_rw.clip_draw(self.frame * 64, 0, 64, 63, self.x, self.y + 110, 128, 126)
         if self.net_stop > 0:
             self.img_net.clip_draw(0, 0, 100, 100, self.x + 20, self.y + 110 + self.jump, 120, 100)
-
-            
+        
 class Ball:
     def __init__(self, x, y, resources, player1, player2):
         self.x = x
